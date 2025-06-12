@@ -67,9 +67,12 @@ else:
                 hasil[nama_bagian] = df_filtered[kolom_asli].mean()
 
         # Metrik per bagian
-        cols = st.columns(len(hasil))
-        for i, (bagian, nilai) in enumerate(hasil.items()):
-            cols[i].metric(bagian.capitalize(), f"{nilai:.2f} hari")
+        if hasil:
+    cols = st.columns(len(hasil))
+    for i, (bagian, nilai) in enumerate(hasil.items()):
+        cols[i].metric(bagian.capitalize(), f"{nilai:.2f} hari")
+else:
+    st.info("Silakan pilih bagian yang memiliki data untuk ditampilkan.")
 
         # Chart bar
         st.markdown("### 📊 Grafik SLA Rata-rata")
