@@ -7,7 +7,7 @@ st.title("📊 Dashboard SLA Pembayaran per Bagian")
 
 @st.cache_data
 def load_data():
-    df = pd.read_excel("SLA Pembayaran.xlsx")
+    df = pd.read_excel("SLA Terbaru1.xlsx")
     df.columns = df.columns.str.strip().str.lower()
     return df
 
@@ -18,45 +18,62 @@ if df.empty:
 else:
     st.sidebar.header("🔍 Filter Data")
 
-    # Inisialisasi daftar bagian
-    bagian_list = ['fungsional', 'vendor', 'keuangan', 'perbendaharaan']
+    # Normalisasi nama kolom
+    bagian_map = {
+        'fungsi vendor': 'vendor',
+        'fungsi fungsi': 'fungsional',
+        'fungsi keuangan': 'keuangan',
+        'fungsi perbendaharaan': 'perbendaharaan'
+    }
 
-    # Buat filter dropdown berdasarkan isi kolom (semua lowercase)
+    bagian_all = list(bagian_map.values())
+
+    # Pilihan filter
     periode_list = sorted(df['periode'].dropna().unique())
     vendor_list = sorted(df['vendor'].dropna().unique())
 
-    selected_periode = st.sidebar.multiselect("Pilih Periode", periode_list, default=periode_list)
-    selected_vendor = st.sidebar.multiselect("Pilih Vendor", vendor_list, default=vendor_list)
-    selected_bagian = st.sidebar.multiselect("Pilih Bagian", bagian_list, default=bagian_list)
+    selected_periode = st.sidebar.multiselect("🗓 Pilih Periode", periode_list, default=periode_list)
+    selected_vendor = st.sidebar.multiselect("🏢 Pilih Vendor", vendor_list, default=vendor_list)
+    selected_bagian = st.sidebar.multiselect("🏬 Pilih Bagian", bagian_all, default=bagian_all)
 
-    # Filter data berdasarkan pilihan
     df_filtered = df[
         df['periode'].isin(selected_periode) &
         df['vendor'].isin(selected_vendor)
     ]
 
     if df_filtered.empty:
-        st.warning("Tidak ada data sesuai filter.")
+        st.warning("⚠️ Tidak ada data untuk filter tersebut.")
     else:
-        st.markdown("## 📈 Statistik Rata-Rata SLA per Bagian")
-        mean_values = df_filtered[selected_bagian].mean().reset_index()
-        mean_values.columns = ['bagian', 'rata-rata sla (hari)']
+        st.subheader("📈 Rata-Rata SLA per Bagian")
 
-        # Tampilkan metrik rata-rata per bagian
-        cols = st.columns(len(selected_bagian))
-        for i, bagian in enumerate(selected_bagian):
-            rata = df_filtered[bagian].mean()
-            cols[i].metric(f"{bagian.capitalize()}", f"{rata:.2f} hari")
+        # Hitung rata-rata berdasarkan kolom asli
+        hasil = {}
+        for kolom_asli, nama_bagian in bagian_map.items():
+            if nama_bagian in selected_bagian:
+                if kolom_asli in df_filtered.columns:
+                    hasil[nama_bagian] = df_filtered[kolom_asli].mean()
+        
+        # Tampilkan metrik
+        cols = st.columns(len(hasil))
+        for i, (bagian, nilai) in enumerate(hasil.items()):
+            cols[i].metric(bagian.capitalize(), f"{nilai:.2f} hari")
 
-        # Bar chart
-        st.markdown("### 📊 Grafik SLA Rata-rata per Bagian")
-        fig = px.bar(mean_values, x='bagian', y='rata-rata sla (hari)', color='bagian', text_auto=True)
+        # Tampilkan chart
+        st.markdown("### 📊 Grafik SLA Rata-rata")
+        chart_df = pd.DataFrame({
+            'Bagian': list(hasil.keys()),
+            'Rata-Rata SLA (hari)': list(hasil.values())
+        })
+
+        fig = px.bar(chart_df, x="Bagian", y="Rata-Rata SLA (hari)", color="Bagian", text_auto=True)
         st.plotly_chart(fig, use_container_width=True)
 
         # Tampilkan tabel
-        with st.expander("📋 Lihat Data Terfilter"):
-            st.dataframe(df_filtered[['periode', 'vendor'] + selected_bagian], use_container_width=True)
+        with st.expander("📋 Data Terfilter"):
+            kolom_tampil = ['periode', 'vendor'] + list(bagian_map.keys())
+            df_tampil = df_filtered[kolom_tampil]
+            st.dataframe(df_tampil, use_container_width=True)
 
-        # Tombol unduh CSV
-        csv = df_filtered[['periode', 'vendor'] + selected_bagian].to_csv(index=False).encode('utf-8')
-        st.download_button("⬇️ Unduh Data Terfilter (CSV)", csv, "sla_data_filtered.csv", "text/csv")
+        # Unduh data
+        csv = df_tampil.to_csv(index=False).encode('utf-8')
+        st.download_button("⬇️ Unduh Data (CSV)", csv, "data_sla.csv", "text/csv")
