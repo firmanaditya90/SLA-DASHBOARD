@@ -2,85 +2,60 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(
-    page_title="Dashboard SLA Pembayaran",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-st.title("📊 Dashboard SLA Pembayaran")
+st.set_page_config(page_title="Dashboard SLA Pembayaran", layout="wide")
+st.title("📊 Dashboard SLA Pembayaran per Bagian")
 
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_excel("SLA Pembayaran.xlsx")
-        df.columns = df.columns.str.strip().str.lower()
-
-        rename_map = {
-            'vendor': 'Vendor',
-            'unit': 'Unit',
-            'periode': 'Periode',
-            'sla (hari)': 'SLA (hari)'
-        }
-        df = df.rename(columns=rename_map)
-
-        required_columns = ['Vendor', 'Unit', 'Periode', 'SLA (hari)']
-        missing = [col for col in required_columns if col not in df.columns]
-        if missing:
-            st.error(f"Kolom berikut tidak ditemukan dalam file: {missing}")
-            return pd.DataFrame()
-
-        df = df.dropna(subset=['SLA (hari)', 'Periode'])
-        return df
-    except Exception as e:
-        st.error(f"Gagal memuat data: {e}")
-        return pd.DataFrame()
+    df = pd.read_excel("SLA Pembayaran.xlsx")
+    df.columns = df.columns.str.strip()
+    return df
 
 df = load_data()
 
 if df.empty:
-    st.warning("Data tidak tersedia atau format file tidak sesuai.")
+    st.warning("Data tidak tersedia.")
 else:
-    with st.sidebar:
-        st.header("🔍 Filter Data")
-        selected_periode = st.multiselect("Periode (Bulan/Tahun)", sorted(df['Periode'].unique()), default=sorted(df['Periode'].unique()))
-        selected_vendors = st.multiselect("Vendor", df['Vendor'].unique(), default=df['Vendor'].unique())
-        selected_units = st.multiselect("Unit", df['Unit'].unique(), default=df['Unit'].unique())
+    st.sidebar.header("🔍 Filter Data")
 
+    # Ambil daftar unik untuk filter
+    periode_list = sorted(df['Periode'].dropna().unique())
+    vendor_list = sorted(df['Vendor'].dropna().unique())
+    bagian_list = ['Fungsional', 'Vendor', 'Keuangan', 'Perbendaharaan']
+
+    # Sidebar filters
+    selected_periode = st.sidebar.multiselect("Pilih Periode", periode_list, default=periode_list)
+    selected_vendor = st.sidebar.multiselect("Pilih Vendor", vendor_list, default=vendor_list)
+    selected_bagian = st.sidebar.multiselect("Pilih Bagian", bagian_list, default=bagian_list)
+
+    # Filter data
     df_filtered = df[
-        (df['Periode'].isin(selected_periode)) &
-        (df['Vendor'].isin(selected_vendors)) &
-        (df['Unit'].isin(selected_units))
+        df['Periode'].isin(selected_periode) &
+        df['Vendor'].isin(selected_vendor)
     ]
 
-    avg_sla = df_filtered['SLA (hari)'].mean()
-    min_sla = df_filtered['SLA (hari)'].min()
-    max_sla = df_filtered['SLA (hari)'].max()
+    if df_filtered.empty:
+        st.warning("Tidak ada data sesuai filter.")
+    else:
+        st.markdown("## 📈 Statistik Rata-Rata SLA per Bagian")
+        mean_values = df_filtered[selected_bagian].mean().reset_index()
+        mean_values.columns = ['Bagian', 'Rata-rata SLA (hari)']
 
-    st.markdown("## 📈 Statistik SLA")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("🎯 Rata-rata SLA", f"{avg_sla:.2f} hari")
-    col2.metric("📉 SLA Tercepat", f"{min_sla:.0f} hari")
-    col3.metric("📈 SLA Terlama", f"{max_sla:.0f} hari")
+        # Display metrics
+        cols = st.columns(len(selected_bagian))
+        for i, bagian in enumerate(selected_bagian):
+            rata = df_filtered[bagian].mean()
+            cols[i].metric(f"{bagian}", f"{rata:.2f} hari")
 
-    st.markdown("### 🧾 Rata-rata SLA per Vendor")
-    fig_vendor = px.bar(
-        df_filtered.groupby("Vendor")["SLA (hari)"].mean().reset_index(),
-        x="Vendor", y="SLA (hari)", text_auto=True,
-        color="SLA (hari)", title="Rata-rata SLA per Vendor"
-    )
-    st.plotly_chart(fig_vendor, use_container_width=True)
+        # Bar chart
+        st.markdown("### 📊 Grafik SLA Rata-rata per Bagian")
+        fig = px.bar(mean_values, x='Bagian', y='Rata-rata SLA (hari)', color='Bagian', text_auto=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("### 🏢 Rata-rata SLA per Unit")
-    fig_unit = px.bar(
-        df_filtered.groupby("Unit")["SLA (hari)"].mean().reset_index(),
-        x="Unit", y="SLA (hari)", color="SLA (hari)", text_auto=True,
-        title="Rata-rata SLA per Unit"
-    )
-    st.plotly_chart(fig_unit, use_container_width=True)
+        # Tampilkan tabel
+        with st.expander("📋 Lihat Data Terfilter"):
+            st.dataframe(df_filtered[['Periode', 'Vendor'] + selected_bagian], use_container_width=True)
 
-    with st.expander("📋 Lihat Tabel Data Terfilter"):
-        st.dataframe(df_filtered, use_container_width=True)
-
-    csv = df_filtered.to_csv(index=False).encode('utf-8')
-    st.download_button("⬇️ Unduh Data Terfilter (CSV)", csv, "data_sla_terfilter.csv", "text/csv")
+        # Tombol unduh CSV
+        csv = df_filtered[['Periode', 'Vendor'] + selected_bagian].to_csv(index=False).encode('utf-8')
+        st.download_button("⬇️ Unduh Data Terfilter (CSV)", csv, "sla_data_filtered.csv", "text/csv")
