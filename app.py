@@ -19,7 +19,7 @@ else:
     st.sidebar.header("🔍 Filter Data")
 
     # Ambil daftar unik untuk filter
-    periode_list = sorted(df['PERIODE'].dropna().unique())
+    periode_list = sorted(df['Periode'].dropna().unique())
     vendor_list = sorted(df['VENDOR'].dropna().unique())
     bagian_list = ['FUNGSIONAL', 'VENDOR', 'KEUANGAN', 'PERBENDAHARAAN']
 
