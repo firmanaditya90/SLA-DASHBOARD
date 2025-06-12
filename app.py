@@ -24,14 +24,14 @@ else:
     bagian_list = ['Fungsional', 'Vendor', 'Keuangan', 'Perbendaharaan']
 
     # Sidebar filters
-    selected_periode = st.sidebar.multiselect("Pilih Periode", periode_list, default=periode_list)
-    selected_vendor = st.sidebar.multiselect("Pilih Vendor", vendor_list, default=vendor_list)
-    selected_bagian = st.sidebar.multiselect("Pilih Bagian", bagian_list, default=bagian_list)
+    selected_periode = st.sidebar.multiselect("Pilih PERIODE", periode_list, default=periode_list)
+    selected_vendor = st.sidebar.multiselect("Pilih VENDOR", vendor_list, default=vendor_list)
+    selected_bagian = st.sidebar.multiselect("Pilih BAGIAN", bagian_list, default=bagian_list)
 
     # Filter data
     df_filtered = df[
-        df['Periode'].isin(selected_periode) &
-        df['Vendor'].isin(selected_vendor)
+        df['PERIODE'].isin(selected_periode) &
+        df['VENDOR'].isin(selected_vendor)
     ]
 
     if df_filtered.empty:
