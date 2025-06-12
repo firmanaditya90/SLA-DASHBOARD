@@ -8,7 +8,7 @@ st.title("📊 Dashboard SLA Pembayaran per Bagian")
 @st.cache_data
 def load_data():
     df = pd.read_excel("SLA Pembayaran.xlsx")
-    df.columns = df.columns.str.strip()
+    df.columns = df.columns.str.strip().str.lower()
     return df
 
 df = load_data()
@@ -18,20 +18,21 @@ if df.empty:
 else:
     st.sidebar.header("🔍 Filter Data")
 
-    # Ambil daftar unik untuk filter
-    periode_list = sorted(df['Periode'].dropna().unique())
-    vendor_list = sorted(df['VENDOR'].dropna().unique())
-    bagian_list = ['FUNGSIONAL', 'VENDOR', 'KEUANGAN', 'PERBENDAHARAAN']
+    # Inisialisasi daftar bagian
+    bagian_list = ['fungsional', 'vendor', 'keuangan', 'perbendaharaan']
 
-    # Sidebar filters
-    selected_periode = st.sidebar.multiselect("Pilih PERIODE", periode_list, default=periode_list)
-    selected_vendor = st.sidebar.multiselect("Pilih VENDOR", vendor_list, default=vendor_list)
-    selected_bagian = st.sidebar.multiselect("Pilih BAGIAN", bagian_list, default=bagian_list)
+    # Buat filter dropdown berdasarkan isi kolom (semua lowercase)
+    periode_list = sorted(df['periode'].dropna().unique())
+    vendor_list = sorted(df['vendor'].dropna().unique())
 
-    # Filter data
+    selected_periode = st.sidebar.multiselect("Pilih Periode", periode_list, default=periode_list)
+    selected_vendor = st.sidebar.multiselect("Pilih Vendor", vendor_list, default=vendor_list)
+    selected_bagian = st.sidebar.multiselect("Pilih Bagian", bagian_list, default=bagian_list)
+
+    # Filter data berdasarkan pilihan
     df_filtered = df[
-        df['PERIODE'].isin(selected_PERIODE) &
-        df['VENDOR'].isin(selected_VENDOR)
+        df['periode'].isin(selected_periode) &
+        df['vendor'].isin(selected_vendor)
     ]
 
     if df_filtered.empty:
@@ -39,23 +40,23 @@ else:
     else:
         st.markdown("## 📈 Statistik Rata-Rata SLA per Bagian")
         mean_values = df_filtered[selected_bagian].mean().reset_index()
-        mean_values.columns = ['Bagian', 'Rata-rata SLA (hari)']
+        mean_values.columns = ['bagian', 'rata-rata sla (hari)']
 
-        # Display metrics
+        # Tampilkan metrik rata-rata per bagian
         cols = st.columns(len(selected_bagian))
         for i, bagian in enumerate(selected_bagian):
             rata = df_filtered[bagian].mean()
-            cols[i].metric(f"{bagian}", f"{rata:.2f} hari")
+            cols[i].metric(f"{bagian.capitalize()}", f"{rata:.2f} hari")
 
         # Bar chart
         st.markdown("### 📊 Grafik SLA Rata-rata per Bagian")
-        fig = px.bar(mean_values, x='Bagian', y='Rata-rata SLA (hari)', color='Bagian', text_auto=True)
+        fig = px.bar(mean_values, x='bagian', y='rata-rata sla (hari)', color='bagian', text_auto=True)
         st.plotly_chart(fig, use_container_width=True)
 
         # Tampilkan tabel
         with st.expander("📋 Lihat Data Terfilter"):
-            st.dataframe(df_filtered[['Periode', 'Vendor'] + selected_bagian], use_container_width=True)
+            st.dataframe(df_filtered[['periode', 'vendor'] + selected_bagian], use_container_width=True)
 
         # Tombol unduh CSV
-        csv = df_filtered[['Periode', 'Vendor'] + selected_bagian].to_csv(index=False).encode('utf-8')
+        csv = df_filtered[['periode', 'vendor'] + selected_bagian].to_csv(index=False).encode('utf-8')
         st.download_button("⬇️ Unduh Data Terfilter (CSV)", csv, "sla_data_filtered.csv", "text/csv")
