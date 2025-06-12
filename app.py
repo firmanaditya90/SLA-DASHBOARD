@@ -29,10 +29,22 @@ else:
     bagian_all = list(bagian_map.values())
 
     # Pilihan filter
-    periode_list = sorted(df['periode'].dropna().unique())
-    vendor_list = sorted(df['vendor'].dropna().unique())
+    # Cari nama kolom yang mengandung kata 'periode'
+periode_col = [col for col in df.columns if 'periode' in col.lower()]
+if not periode_col:
+    st.error("❌ Kolom 'Periode' tidak ditemukan di file.")
+    st.stop()
+periode_col = periode_col[0]
 
-    selected_periode = st.sidebar.multiselect("🗓 Pilih Periode", periode_list, default=periode_list)
+# Kemudian gunakan:
+periode_list = sorted(df[periode_col].dropna().unique())
+vendor_col = [col for col in df.columns if 'vendor' in col.lower()]
+if not vendor_col:
+    st.error("❌ Kolom 'Vendor' tidak ditemukan.")
+    st.stop()
+vendor_col = vendor_col[0]
+
+vendor_list = sorted(df[vendor_col].dropna().unique())
     selected_vendor = st.sidebar.multiselect("🏢 Pilih Vendor", vendor_list, default=vendor_list)
     selected_bagian = st.sidebar.multiselect("🏬 Pilih Bagian", bagian_all, default=bagian_all)
 
