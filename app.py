@@ -30,8 +30,8 @@ else:
 
     # Filter data
     df_filtered = df[
-        df['PERIODE'].isin(selected_periode) &
-        df['VENDOR'].isin(selected_vendor)
+        df['PERIODE'].isin(selected_PERIODE) &
+        df['VENDOR'].isin(selected_VENDOR)
     ]
 
     if df_filtered.empty:
