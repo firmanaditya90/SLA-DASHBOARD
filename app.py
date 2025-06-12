@@ -20,7 +20,7 @@ else:
 
     # Ambil daftar unik untuk filter
     periode_list = sorted(df['PERIODE'].dropna().unique())
-    vendor_list = sorted(df['VENDOR].dropna().unique())
+    vendor_list = sorted(df['VENDOR'].dropna().unique())
     bagian_list = ['FUNGSIONAL', 'VENDOR', 'KEUANGAN', 'PERBENDAHARAAN']
 
     # Sidebar filters
